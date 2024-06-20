@@ -1,9 +1,8 @@
 import time
 from selenium import webdriver
-from selenium.webdriver.edge.service import Service as EdgeService
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.edge.options import Options
+from selenium.webdriver.safari.options import Options
 from bs4 import BeautifulSoup
 import csv
 
@@ -66,19 +65,8 @@ if __name__ == "__main__":
     item_count = 5  # Define how many items you want to scrape
     scroll_delay = 2  # Time to wait before the next scroll
 
-    # Set up Edge options
-    edge_options = Options()
-    edge_options.add_argument("--headless")
-    edge_options.add_argument("--disable-gpu")
-    edge_options.add_argument("--no-sandbox")
-    edge_options.add_argument("--disable-dev-shm-usage")  # May help prevent some issues
-    edge_options.add_argument("--disable-software-rasterizer")  # Disable software rasterizer for headless mode
-
-    # Specify the path to the EdgeDriver
-    edge_service = EdgeService(executable_path='C:/Users/fajar/Downloads/edgedriver_win64/msedgedriver.exe')
-
-    # Initialize the WebDriver
-    driver = webdriver.Edge(service=edge_service, options=edge_options)
+    # Initialize the Safari WebDriver
+    driver = webdriver.Safari()
     driver.set_page_load_timeout(300)  # Increase timeout to handle slow loading pages
     driver.get(base_url)
     time.sleep(5)  # Wait for the page to load

@@ -1,0 +1,14 @@
+# Ignore the virtual environment directory
+venv/
+
+# Python specific ignores
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Ignore IDE/editor specific files
+.vscode/
+.idea/
+
+# Ignore macOS specific files
+.DS_Store
