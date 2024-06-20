@@ -56,9 +56,19 @@ def goto_links(driver, items):
                     field_obj['Plus_code'] = element.select_one('.AeaXub .rogA2c').text
                 elif aria_label.startswith('Website'):
                     field_obj['Website'] = element.get('href')
+        try:
+            field_obj['Rating'] = soup.select_one('span.aMPvhf-fI6EEc-KVuj8d').text
+        except AttributeError:
+            field_obj['Rating'] = None
+        try:
+            field_obj['UserReviews'] = soup.select_one('span.widget-pane-link').text
+        except AttributeError:
+            field_obj['UserReviews'] = None
 
         result_obj.update(field_obj)
         new_items.append(result_obj)
+    return new_items
+
     return new_items
 
 if __name__ == "__main__":
@@ -75,7 +85,7 @@ if __name__ == "__main__":
     edge_options.add_argument("--disable-software-rasterizer")  # Disable software rasterizer for headless mode
 
     # Specify the path to the EdgeDriver
-    edge_service = EdgeService(executable_path='/Users/satria/Downloads/Edge WebDriver M1/msedgedriver')
+    edge_service = EdgeService(executable_path='C:/Users/fajar/Downloads/edgedriver_win64/msedgedriver.exe')
 
     # Initialize the WebDriver
     driver = webdriver.Edge(service=edge_service, options=edge_options)
@@ -95,8 +105,8 @@ if __name__ == "__main__":
 
     # Save the result to a CSV file with UTF-8 encoding
     print("Saving data to CSV...")
-    with open('places.csv', 'w', newline='', encoding='utf-8') as file:
-        writer = csv.DictWriter(file, fieldnames=['url', 'title', 'Address', 'Pincode', 'PhoneNo', 'Plus_code', 'Website'])
+    with open('places_ratings.csv', 'w', newline='', encoding='utf-8') as file:
+        writer = csv.DictWriter(file, fieldnames=['url', 'title', 'Address', 'Pincode', 'PhoneNo', 'Plus_code', 'Website', 'Rating', 'UserReviews'])
         writer.writeheader()
         for item in detailed_items:
             writer.writerow(item)
