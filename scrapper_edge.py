@@ -57,11 +57,12 @@ def goto_links(driver, items):
                 elif aria_label.startswith('Website'):
                     field_obj['Website'] = element.get('href')
         try:
-            field_obj['Rating'] = soup.select_one('span.aMPvhf-fI6EEc-KVuj8d').text
+            field_obj['Rating'] = soup.select_one('div.F7nice span[aria-hidden="true"]').text
         except AttributeError:
             field_obj['Rating'] = None
+
         try:
-            field_obj['UserReviews'] = soup.select_one('span.widget-pane-link').text
+            field_obj['UserReviews'] = soup.select_one('span[aria-label$="reviews"]').text.strip('()')
         except AttributeError:
             field_obj['UserReviews'] = None
 

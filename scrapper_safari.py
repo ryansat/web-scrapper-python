@@ -55,12 +55,15 @@ def goto_links(driver, items):
                     field_obj['Plus_code'] = element.select_one('.AeaXub .rogA2c').text
                 elif aria_label.startswith('Website'):
                     field_obj['Website'] = element.get('href')
+
+        # Extract ratings and user reviews
         try:
-            field_obj['Rating'] = soup.select_one('span.aMPvhf-fI6EEc-KVuj8d').text
+            field_obj['Rating'] = soup.select_one('div.F7nice span[aria-hidden="true"]').text
         except AttributeError:
             field_obj['Rating'] = None
+
         try:
-            field_obj['UserReviews'] = soup.select_one('span.widget-pane-link').text
+            field_obj['UserReviews'] = soup.select_one('span[aria-label$="reviews"]').text.strip('()')
         except AttributeError:
             field_obj['UserReviews'] = None
 
@@ -91,7 +94,7 @@ if __name__ == "__main__":
 
     # Save the result to a CSV file with UTF-8 encoding
     print("Saving data to CSV...")
-    with open('places.csv', 'w', newline='', encoding='utf-8') as file:
+    with open('places_ratings.csv', 'w', newline='', encoding='utf-8') as file:
         writer = csv.DictWriter(file, fieldnames=['url', 'title', 'Address', 'Pincode', 'PhoneNo', 'Plus_code', 'Website', 'Rating', 'UserReviews'])
         writer.writeheader()
         for item in detailed_items:
