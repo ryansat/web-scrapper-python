@@ -21,25 +21,43 @@ def scrape_google_maps_reviews(url, num_reviews):
     def click_load_more_button():
         try:
             load_more_button = WebDriverWait(driver, 10).until(
-                EC.element_to_be_clickable((By.CSS_SELECTOR, 'button.M77dve'))
+                EC.element_to_be_clickable((By.XPATH, "//button[contains(@aria-label, 'Ulasan lainnya')]"))
             )
             load_more_button.click()
             time.sleep(5)  # Wait for the reviews to load
         except Exception as e:
             print("Load more button not found or not clickable:", e)
 
-    # Click the "Load more reviews" button once initially if present
-    click_load_more_button()
+    # Function to scroll the page
+    def scroll_the_page():
+        try:
+            scrollable_div = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, 'div.m6QErb.DxyBCb.kA9KIf.dS8AEf.XiKgde'))
+            )
+            driver.execute_script('arguments[0].scrollTop = arguments[0].scrollHeight', scrollable_div)
+            time.sleep(2)
+        except Exception as e:
+            print(f"Error scrolling the page: {e}")
+
+    # Function to expand all reviews
+    def expand_all_reviews():
+        try:
+            elements = driver.find_elements(By.CLASS_NAME, "section-expand-review")
+            for element in elements:
+                element.click()
+        except Exception as e:
+            print(f"Error expanding reviews: {e}")
+
+    # Initialize last_height to track page scroll height
+    last_height = driver.execute_script("return document.body.scrollHeight")
 
     # Scroll and scrape until we get the desired number of reviews
-    last_height = driver.execute_script("return document.body.scrollHeight")
     while len(reviews_data) < num_reviews:
-        # Scroll to the bottom of the page to load more reviews
-        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-        time.sleep(2)
-
         # Click the "Load more reviews" button if present
-        click_load_more_button()
+        # click_load_more_button()
+
+        # Scroll to the bottom of the page to load more reviews
+        scroll_the_page()
 
         # Get page source and parse it with BeautifulSoup
         soup = BeautifulSoup(driver.page_source, 'html.parser')
@@ -87,7 +105,7 @@ def scrape_google_maps_reviews(url, num_reviews):
     print(f'Data for {num_reviews} reviews has been scraped and saved to google_maps_reviews.csv')
 
 # URL to scrape
-url = 'https://www.google.com/maps/place/Mall+Grand+Cakung/@-6.1867501,106.9485864,15z/data=!4m6!3m5!1s0x2e698b09ef2ae3ff:0x6e906e182d101bf!8m2!3d-6.1867509!4d106.9588868!16s%2Fg%2F11bw7m0rlm?entry=ttu'
+url = 'https://www.google.com/maps/place/Mall+Grand+Cakung/@-6.1867501,106.9485864,15z/data=!4m8!3m7!1s0x2e698b09ef2ae3ff:0x6e906e182d101bf!8m2!3d-6.1867509!4d106.9588868!9m1!1b1!16s%2Fg%2F11bw7m0rlm?entry=ttu'
 
 # Number of reviews to scrape
 num_reviews = 50
