@@ -88,7 +88,7 @@ def scrape_google_maps_reviews(url, num_reviews):
 
         # Check if the page height has not increased, which means no more reviews are loading
         new_height = driver.execute_script("return document.body.scrollHeight")
-        if new_height == last_height:
+        if new_height == last_height+1000:
             print("No more reviews are loading.")
             break
         last_height = new_height
