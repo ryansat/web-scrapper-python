@@ -13,3 +13,5 @@ __pycache__/
 # Ignore macOS specific files
 .DS_Store
 *.csv
+autochrome.py
+test.py
