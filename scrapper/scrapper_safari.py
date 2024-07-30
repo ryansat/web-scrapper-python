@@ -13,18 +13,22 @@ def extract_items(soup):
     for element in extracted_elements:
         aria_label = element.get('aria-label')
         href = element.get('href')
-        items.append({'ele': aria_label, 'url': href})
+        if href and aria_label:
+            items.append({'ele': aria_label, 'url': href})
     return items
 
 # Function to scrape items by scrolling and loading more content
 def scrape_items(driver, item_count, scroll_delay=2):
     items = []
+    seen_urls = set()
     while len(items) < item_count:
         soup = BeautifulSoup(driver.page_source, 'html.parser')
         new_items = extract_items(soup)
+        new_items = [item for item in new_items if item['url'] not in seen_urls]
         if not new_items:
             break  # If no new items found, exit the loop
         items.extend(new_items)
+        seen_urls.update(item['url'] for item in new_items)
         driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
         time.sleep(scroll_delay)
     return items[:item_count]
@@ -73,7 +77,7 @@ def goto_links(driver, items):
 
 if __name__ == "__main__":
     base_url = 'https://www.google.com/maps/search/restaurants/@-6.1826306,106.9476663,15z/data=!3m1!4b1?entry=ttu'
-    item_count = 5  # Define how many items you want to scrape
+    item_count = 15  # Define how many items you want to scrape
     scroll_delay = 2  # Time to wait before the next scroll
 
     # Initialize the Safari WebDriver
