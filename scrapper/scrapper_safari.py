@@ -76,7 +76,7 @@ def goto_links(driver, items):
     return new_items
 
 if __name__ == "__main__":
-    base_url = 'https://www.google.com/maps/search/restaurants/@-6.1826306,106.9476663,15z/data=!3m1!4b1?entry=ttu'
+    base_url = 'https://www.google.com/maps/search/restaurants/@-6.1396732,106.7413953,10z/data=!3m1!4b1?entry=ttu'
     item_count = 15  # Define how many items you want to scrape
     scroll_delay = 2  # Time to wait before the next scroll
 
