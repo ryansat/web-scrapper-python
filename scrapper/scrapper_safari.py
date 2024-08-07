@@ -11,31 +11,36 @@ def scrape_google_maps_places(url, num_places):
     driver = setup_webdriver()
     
     current_url = url
-
-    places_data = []
+    all_places_data = []
     seen_urls = set()
-    max_scroll_attempts = 20
+    max_scroll_attempts = 10
     scroll_attempts = 0
 
-    while len(places_data) < num_places and scroll_attempts < max_scroll_attempts:
+    while len(all_places_data) < num_places and scroll_attempts < max_scroll_attempts:
         driver.get(current_url)
+        ensure_checkbox_checked(driver)
+
         new_places = extract_places(driver, seen_urls)
 
         if new_places:
-            places_data.extend(new_places)
+            all_places_data.extend(new_places)
             seen_urls.update(place['url'] for place in new_places)
-            print(f"Found {len(new_places)} new places, total: {len(places_data)}")
+            print(f"Found {len(new_places)} new places, total collected: {len(all_places_data)}")
         else:
             scroll_attempts += 1
             print(f"No new places found, attempt {scroll_attempts}/{max_scroll_attempts}")
-            scroll_the_page(driver)  # Scroll the page to attempt loading new content
 
-        if len(places_data) < num_places and scroll_attempts < max_scroll_attempts:
-            current_url = adjust_coordinates(current_url)  # Adjust coordinates from the last position
+        # Adjust the coordinates to explore a new area
+        if len(all_places_data) < num_places and scroll_attempts < max_scroll_attempts:
+            current_url = adjust_coordinates(current_url, scroll_attempts)
             time.sleep(5)  # Wait for the page to reload
 
     driver.quit()
-    save_places_to_csv(places_data, num_places)
+    
+    # Filter unique places based on URLs
+    unique_places_data = {place['url']: place for place in all_places_data}.values()
+    
+    save_places_to_csv(unique_places_data, num_places)
 
 def setup_webdriver():
     """Set up and return a Selenium WebDriver."""
@@ -43,16 +48,17 @@ def setup_webdriver():
     # Add options if needed, e.g., options.add_argument('--headless')
     return webdriver.Safari(options=options)
 
-def scroll_the_page(driver):
-    """Scrolls the page to load more content."""
+def ensure_checkbox_checked(driver):
+    """Ensure the 'Update results when map moves' checkbox is checked."""
     try:
-        scrollable_div = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, 'div.m6QErb.DxyBCb.kA9KIf.dS8AEf.XiKgde.ecceSd'))
+        checkbox = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.XPATH, "//button[@role='checkbox']"))
         )
-        driver.execute_script('arguments[0].scrollTop = arguments[0].scrollHeight', scrollable_div)
-        time.sleep(2)
+        if checkbox.get_attribute("aria-checked") == "false":
+            checkbox.click()
+            print("Checkbox checked.")
     except Exception as e:
-        print(f"Error scrolling the page: {e}")
+        print(f"Error ensuring checkbox is checked: {e}")
 
 def extract_places(driver, seen_urls):
     """Extracts places data from the page source."""
@@ -64,9 +70,9 @@ def extract_places(driver, seen_urls):
         url = link.get('href')
         title = link.get('aria-label')
 
-        if url and title and url not in seen_urls:
+        if url and title:
             place_details = extract_place_details(driver, url)
-            if place_details:
+            if place_details and place_details['url'] not in seen_urls:
                 new_places.append(place_details)
 
     return new_places
@@ -126,16 +132,20 @@ def extract_place_details(driver, url):
 
     return details
 
-def adjust_coordinates(url):
+def adjust_coordinates(url, scroll_attempts):
     """Adjust the coordinates in the URL slightly to explore nearby areas."""
     # Extract the current latitude and longitude from the URL
     lat_lng_str = url.split('@')[1].split(',')[0:2]
     lat = float(lat_lng_str[0])
     lng = float(lat_lng_str[1])
 
-    # Define the range for random movement (e.g., within ±0.005 degrees)
-    lat += random.uniform(-0.55, 0.55)
-    lng += random.uniform(-0.55, 0.55)
+    # Define the range for incremental movement (e.g., within ±0.001 degrees)
+    lat_offset = (0.010 * scroll_attempts) * random.choice([-1, 1])
+    lng_offset = (0.010 * scroll_attempts) * random.choice([-1, 1])
+
+    # Apply the offset to the current coordinates
+    lat += lat_offset
+    lng += lng_offset
 
     # Replace the old coordinates with the new ones in the URL
     new_coords = f"{lat},{lng}"
@@ -150,16 +160,20 @@ def save_places_to_csv(places_data, num_places):
         fieldnames = ['url', 'title', 'Address', 'Pincode', 'PhoneNo', 'Plus_code', 'Website', 'Rating', 'UserReviews']
         writer = csv.DictWriter(file, fieldnames=fieldnames)
         writer.writeheader()
-        for place in places_data[:num_places]:
+        count = 0
+        for place in places_data:
+            if count >= num_places:
+                break
             writer.writerow(place)
+            count += 1
 
-    print(f'Data for {num_places} places has been scraped and saved to google_maps_places.csv')
+    print(f'Data for {count} unique places has been scraped and saved to google_maps_places.csv')
 
 # URL to scrape
 url = 'https://www.google.com/maps/search/restaurants/@-6.2570141,106.7845955,11.27z?entry=ttu'
 
 # Number of places to scrape
-num_places = 20
+num_places = 15
 
 # Scrape places
 scrape_google_maps_places(url, num_places)
