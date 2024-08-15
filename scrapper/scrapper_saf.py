@@ -13,7 +13,7 @@ def scrape_google_maps_places(url, num_places):
     current_url = url
     all_places_data = []
     seen_urls = set()
-    max_scroll_attempts = 5  # Increase scroll attempts to ensure movement to new coordinates
+    max_scroll_attempts = 10
     scroll_attempts = 0
 
     while len(all_places_data) < num_places and scroll_attempts < max_scroll_attempts:
@@ -25,23 +25,27 @@ def scrape_google_maps_places(url, num_places):
         if new_places:
             all_places_data.extend(new_places)
             seen_urls.update(place['url'] for place in new_places)
-            print(f"Found {len(new_places)} new unique places, total collected: {len(all_places_data)}")
+            print(f"Found {len(new_places)} new places, total collected: {len(all_places_data)}")
         else:
             scroll_attempts += 1
             print(f"No new places found, attempt {scroll_attempts}/{max_scroll_attempts}")
-            # Adjust the coordinates to explore a new area if not enough data
-            if scroll_attempts < max_scroll_attempts:
-                current_url = adjust_coordinates(current_url, scroll_attempts)
-                time.sleep(5)  # Wait for the page to reload
+
+        # Adjust the coordinates to explore a new area
+        if len(all_places_data) < num_places and scroll_attempts < max_scroll_attempts:
+            current_url = adjust_coordinates(current_url, scroll_attempts)
+            time.sleep(5)  # Wait for the page to reload
 
     driver.quit()
     
-    # Save unique places based on URLs
-    save_places_to_csv(all_places_data, num_places)
+    # Filter unique places based on URLs
+    unique_places_data = {place['url']: place for place in all_places_data}.values()
+    
+    save_places_to_csv(unique_places_data, num_places)
 
 def setup_webdriver():
     """Set up and return a Selenium WebDriver."""
     options = webdriver.SafariOptions()
+    # Add options if needed, e.g., options.add_argument('--headless')
     return webdriver.Safari(options=options)
 
 def ensure_checkbox_checked(driver):
@@ -66,11 +70,10 @@ def extract_places(driver, seen_urls):
         url = link.get('href')
         title = link.get('aria-label')
 
-        if url and title and url not in seen_urls:
+        if url and title:
             place_details = extract_place_details(driver, url)
-            if place_details:
+            if place_details and place_details['url'] not in seen_urls:
                 new_places.append(place_details)
-                seen_urls.add(url)  # Add to seen URLs to avoid duplicates
 
     return new_places
 
@@ -94,47 +97,34 @@ def extract_place_details(driver, url):
         'UserReviews': ''
     }
 
-    # Extract Address
+    # Extract details
     try:
-        address_button = soup.find('button', {'data-item-id': 'address'})
-        if address_button:
-            address_text = address_button.get('aria-label')
-            if address_text:
-                details['Address'] = address_text.replace('Address: ', '').strip()
-                details['Pincode'] = ''.join(filter(str.isdigit, details['Address'].split(',')[-1]))
+        details['Address'] = soup.select_one('span.LrzXr').text
+        details['Pincode'] = ''.join(filter(str.isdigit, details['Address'].split(',')[-1]))
     except AttributeError:
         details['Address'] = 'N/A'
 
-    # Extract Phone Number
     try:
-        phone_button = soup.find('button', {'data-item-id': lambda x: x and x.startswith('phone:')})
-        if phone_button:
-            phone_text = phone_button.get('aria-label')
-            if phone_text:
-                details['PhoneNo'] = phone_text.replace('Phone: ', '').strip()
+        details['PhoneNo'] = soup.select_one('span.LrzXr.zdqRlf.kno-fv').text
     except AttributeError:
         details['PhoneNo'] = 'N/A'
 
-    # Extract Plus Code
     try:
         details['Plus_code'] = soup.select_one('span.CtHWSd').text
     except AttributeError:
         details['Plus_code'] = 'N/A'
 
-    # Extract Website
     try:
         website = soup.select_one('a.CsEnBe')
         details['Website'] = website['href'] if website else 'N/A'
     except AttributeError:
         details['Website'] = 'N/A'
 
-    # Extract Rating
     try:
         details['Rating'] = soup.select_one('div.F7nice span[aria-hidden="true"]').text
     except AttributeError:
         details['Rating'] = 'N/A'
 
-    # Extract User Reviews
     try:
         details['UserReviews'] = soup.select_one('span[aria-label$="reviews"]').text.strip('()')
     except AttributeError:
@@ -149,7 +139,7 @@ def adjust_coordinates(url, scroll_attempts):
     lat = float(lat_lng_str[0])
     lng = float(lat_lng_str[1])
 
-    # Define the range for incremental movement (e.g., within ±0.010 degrees)
+    # Define the range for incremental movement (e.g., within ±0.001 degrees)
     lat_offset = (0.010 * scroll_attempts) * random.choice([-1, 1])
     lng_offset = (0.010 * scroll_attempts) * random.choice([-1, 1])
 
@@ -183,7 +173,7 @@ def save_places_to_csv(places_data, num_places):
 url = 'https://www.google.com/maps/search/Restoran/@-7.2753584,112.6714843,13z/data=!3m1!4b1?entry=ttu'
 
 # Number of places to scrape
-num_places = 30
+num_places = 15
 
 # Scrape places
 scrape_google_maps_places(url, num_places)
